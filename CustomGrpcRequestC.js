@@ -27,7 +27,7 @@ class MyClient {
             isping = true;
         }
         if (!isping) {
-            console.log(">", subject, payload);
+            // console.log(">", subject, payload);
         }
         const postData = JSON.stringify(payload);
         return new Promise((resolve, reject) => {

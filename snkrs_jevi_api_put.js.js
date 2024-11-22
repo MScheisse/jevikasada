@@ -128,21 +128,21 @@ async function solveApi(task) {
 
 async function generateFPApi(task, retries = 0, isGS = false) {
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        "upgrade-insecure-requests": "1",
-        'user-agent': task.user_agent,
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        // "sec-fetch-site": "same-origin",
-        "sec-fetch-site": "same-site",
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
+        "sec-fetch-site": "none",
+        "x-kpsdk-h": task.kpsdkHHeader,
+        "x-kpsdk-r": task.kpsdkr,
+        "x-kpsdk-dv": task.kpsdkdv,
+        "accept-language": "en-US,en;q=0.9",
+        "accept-encoding": "gzip, deflate, br",
         "sec-fetch-mode": "navigate",
-        "sec-fetch-dest": "iframe",
-        "referer": "https://www.nike.com/",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
+        "x-kpsdk-v": task.kpsdkv,
+        "user-agent": task.user_agent,
+        "sec-fetch-dest": "document",
+        "cookie": '',
     };
-    return CustomElectronRequestC.get('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0', {
+
+    return CustomElectronRequestC.get('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp', {
         task: task,
         headers: task.headers,
         resolveOnlyBody: false,
@@ -150,6 +150,15 @@ async function generateFPApi(task, retries = 0, isGS = false) {
         timeout: 45000
     }).then(async (r) => {
         console.log('here r did resolve', r);
+        if (r.headers['x-kpsdk-h']) {
+            task.kpsdkHHeader = r.headers['x-kpsdk-h'];
+        }
+        if (r.headers['x-kpsdk-fc']) {
+            task.kpsdkfc = r.headers['x-kpsdk-fc'];
+        }
+        if (r.headers['x-kpsdk-r']) {
+            task.kpsdkr = r.headers['x-kpsdk-r'];
+        }
         if (r && r.statusCode === 200 && (!r.body || r.body.length === 0)) {
             throw ('KASADA API BLOCKED! PROCEED CAUTIOUSLY!', Status.DANGER);
         }
@@ -169,7 +178,16 @@ async function generateFPApi(task, retries = 0, isGS = false) {
     }).catch(async (err) => {
         console.log('here err exception caught', err);
         retries++;
-        // console.log('ERR GENERATING KASADA API!', Status.WARNING, true);
+        if (err.data.headers['x-kpsdk-h']) {
+            task.kpsdkHHeader = err.data.headers['x-kpsdk-h'];
+        }
+        if (err.data.headers['x-kpsdk-fc']) {
+            task.kpsdkfc = err.data.headers['x-kpsdk-fc'];
+        }
+        if (err.data.headers['x-kpsdk-r']) {
+            task.kpsdkr = err.data.headers['x-kpsdk-r'];
+        }
+
         if (ErrorHelper.sensorAccessDenied429(err)) {
             if (err && err.data && err.data.body?.length === 0 && retries < 3) {
                 throw ('PROXY BLOCKED EMPTY!');
@@ -191,17 +209,13 @@ async function generateFPApi(task, retries = 0, isGS = false) {
 
 async function getIpsJSApi(task, retries = 0) {
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': task.user_agent,
-        'sec-ch-ua-platform': '"Windows"',
+        "cache-control": "no-cache",
+        "user-agent": task.user_agent,
+        "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
+        "accept-language": "en-US,en;q=0.9",
+        "pragma": "no-cache",
         "accept": "*/*",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "no-cors",
-        "sec-fetch-dest": "script",
-        "referer": 'https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0',
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
+        "x-requested-with": "com.nike.snkrs",
     };
     return CustomElectronRequestC.get(task.apiIpsJSUrl, {
         task: task,
@@ -329,25 +343,50 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
 }
 
 async function postTlDataApi(task, ipsData = '') {
+
+    // let headers: any = {
+    //     "referer": Util.extractHttpsUrl(url) + "/" + this.task.commonService.SensorService.ksdaIds + "/fp",
+    //     "cookie": "",
+    //     'user-agent': this.task.user_agent_mobile,
+    //     "origin": Util.extractHttpsUrl(url),
+    //     "sec-fetch-dest": "empty",
+    //     "sec-fetch-site": "same-origin",
+    //     "content-length": "",
+    //     "x-kpsdk-r": this.kpsdkr,
+    //     [this.task.commonService.SensorService.kpsdkheader]: kpsdkct,
+    //     "x-kpsdk-dt": kpsdkdt,
+    //     "x-kpsdk-dv": this.kpsdkdv,
+    //     'accept-language': this.task.commonService.acceptLanguage,
+    //     "x-kpsdk-v": this.kpsdkv,
+    //     [this.task.commonService.SensorService.kpsdkheadervariation]: kpsdkim,
+    //     "accept": "*/*",
+    //     "content-type": "application/octet-stream",
+    //     "accept-encoding": "gzip, deflate, br",
+    //     "sec-fetch-mode": "cors",
+    //     // 'x-kpsdk-h': kpsdkh,
+    //     // 'x-kpsdk-fc': kpsdkfc,
+    // };
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'x-kpsdk-im': task.kpsdkheadervalueApi,
-        'x-kpsdk-ct': task.kpsdkctAPI,
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': task.user_agent,
-        "content-type": "application/octet-stream",
-        "x-kpsdk-dt": task.kpsdkdtApi,
-        "x-kpsdk-v": 'j-0.0.0',
-        'sec-ch-ua-platform': '"Windows"',
-        "accept": "*/*",
+        "x-kpsdk-v": task.kpsdkv,
         "origin": "https://api.nike.com",
-        // "sec-fetch-site": "same-origin",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-dest": "empty",
-        "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "cache-control": "no-cache",
+        "x-kpsdk-r": task.kpsdkr,
+
+        "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
+        "x-requested-with": "com.nike.snkrs",
+        "cookie": "",
+        'x-kpsdk-h': task.kpsdkh,
+        'x-kpsdk-dv': task.kpsdkdv,
+        "content-type": "application/octet-stream",
+        'x-kpsdk-fc': task.kpsdkfc,
+        'accept-language': task.acceptLanguage,
+        "pragma": "no-cache",
+        "x-kpsdk-im": task.kpsdkheadervalueApi,
+        "x-kpsdk-ct": task.kpsdkctAPI,
+        "user-agent": task.user_agent,
+        "x-kpsdk-dt": task.kpsdkdtApi
     };
     return CustomElectronRequestC.post('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl', {
         task: task,
@@ -424,7 +463,6 @@ async function runTests() {
         await atcPreOrder(task);
         await atcPreOrder(task);
         await atcPreOrder(task);
-        await atcPreOrder(task);
     } catch (e) {
         console.log('err here ', e);
     }
@@ -474,6 +512,27 @@ async function atcPreOrder(task, retries = 0) {
         'referer': 'https://www.nike.com/',
         'accept-encoding': 'gzip, deflate, br, zstd',
         'accept-language': task.acceptLanguage
+    };
+
+    headers = {
+        'x-b3-traceid': v4(),
+        "accept-charset": "utf-8",
+        'x-kpsdk-ct': task.kpsdkctAPI,
+        "x-kpsdk-h": task.kpsdkh,
+        "traceparent": v4(),
+        "x-newrelic-id": "UAUDWF9TDBAHVVlRAAEEU1A=",
+        'x-nike-visitid': 1,
+        "accept": "application/json",
+        "x-kpsdk-cd": task.kpsdkcd,
+        'x-nike-visitorid': v4(),
+        "appid": "com.nike.commerce.omega.droid",
+        "nike-api-caller-id": "nike:com.nike.commerce.omega.droid:android:24.33.1",
+        "x-kpsdk-dv": task.kpsdkdv,
+        "user-agent": task.user_agent,
+        "x-kpsdk-v": task.kpsdkv,
+        "tracestate": v4(),
+        "newrelic": v4(),
+        "content-type": "application/json"
     };
     const options = {
         task: task,
@@ -531,14 +590,20 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-    secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
-    // secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
+    user_agent = 'SNKRS/6.7.0 (prod; 2408261936; iOS 16.7.2; iPhone10,3)'
+    // secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
+    secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
     interv = ''
     validfor = 0;
     lastExecutionTime = Date.now();
     visitId = 1;
     visitorId = '';
+
+    kpsdkv = 'i-1.14.0'
+    kpsdkdv = 'QkZRAEMCQFJfBH1cGhcWX2QLQlcDBgMBC0EUFQtDZ11BRVoMV0YDQwBQGQQDUxZF'
+    kpsdkr = '1-B1ZUbmo'
+    kpsdkHHeader = '01peVZkJ18rjk1OLqVJeGa1IQThCA='
+    kpsdkfc = ''
 
     constructor() {
         console.log('here logging v4', v4);

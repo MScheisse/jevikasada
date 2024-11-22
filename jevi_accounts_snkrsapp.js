@@ -104,12 +104,12 @@ function getAppDataPath() {
 }
 
 
-async function testJeviApi(task) {
-    console.log('testing jevi api here');
+async function testJeviAccounts(task) {
+    console.log('testing jevi Accounts here');
     try {
-        await generateFPApi(task);
-        await solveApi(task);
-        console.log('done generating jevi api fp');
+        await generateFPAccounts(task);
+        await solveAccounts(task);
+        console.log('done generating jevi Accounts fp');
     } catch (e) {
         console.log('exception caught here', e);
         clearInterval(task.interv)
@@ -117,32 +117,30 @@ async function testJeviApi(task) {
     }
 }
 
-async function solveApi(task) {
-    if (task.apiIpsJSUrl) {
-        const ipsjsbody = await getIpsJSApi(task);
-        const postTl = await jeviGetPostTlDataBeta(task, CustomElectronRequestC.btoa(ipsjsbody), 'api.nike.com');
-        await postTlDataApi(task, postTl)
+async function solveAccounts(task) {
+    if (task.accountsIpsJSUrl) {
+        const ipsjsbody = await getIpsJSAccounts(task);
+        let postTl = await jeviGetPostTlDataBeta(task, CustomElectronRequestC.btoa(ipsjsbody), 'accounts.nike.com');
+        await postTlDataAccounts(task, postTl)
     }
     return Promise.resolve();
 }
 
-async function generateFPApi(task, retries = 0, isGS = false) {
+async function generateFPAccounts(task, retries = 0, isGS = false) {
+
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        "upgrade-insecure-requests": "1",
-        'user-agent': task.user_agent,
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-        // "sec-fetch-site": "same-origin",
-        "sec-fetch-site": "same-site",
-        "sec-fetch-mode": "navigate",
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "sec-fetch-site": "same-origin",
+        "cookie": "",
         "sec-fetch-dest": "iframe",
-        "referer": "https://www.nike.com/",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
+        'accept-language': task.acceptLanguage,
+        "sec-fetch-mode": "navigate",
+        'user-agent': task.user_agent,
+        'referer': 'https://api.nike.com/idn/shim/oauth/2.0/token',
+        "accept-encoding": "gzip, deflate, br"
     };
-    return CustomElectronRequestC.get('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0', {
+
+    return CustomElectronRequestC.get('https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0', {
         task: task,
         headers: task.headers,
         resolveOnlyBody: false,
@@ -151,17 +149,17 @@ async function generateFPApi(task, retries = 0, isGS = false) {
     }).then(async (r) => {
         console.log('here r did resolve', r);
         if (r && r.statusCode === 200 && (!r.body || r.body.length === 0)) {
-            throw ('KASADA API BLOCKED! PROCEED CAUTIOUSLY!', Status.DANGER);
+            throw ('KASADA ACCOUNTS BLOCKED! PROCEED CAUTIOUSLY!', Status.DANGER);
         }
         if (r && r.body) {
             const extractedIPS = firstBetween(r.body, '<script src="', '"></script>');
             if (extractedIPS && extractedIPS !== -1) {
-                task.apiIpsJSUrl = ('https://api.nike.com' + firstBetween(r.body, '<script src="', '"></script>')).split('amp;').join('');
+                task.accountsIpsJSUrl = ('https://accounts.nike.com' + firstBetween(r.body, '<script src="', '"></script>')).split('amp;').join('');
             }
             if (r && r.statusCode === 200) {
                 console.log('here still valid!');
                 task.validfor = task.validfor + retryInterval;
-                task.apiIpsJSUrl = '';
+                task.accountsIpsJSUrl = '';
                 return Promise.resolve(r.statusCode.toString());
             }
         }
@@ -169,17 +167,15 @@ async function generateFPApi(task, retries = 0, isGS = false) {
     }).catch(async (err) => {
         console.log('here err exception caught', err);
         retries++;
-        // console.log('ERR GENERATING KASADA API!', Status.WARNING, true);
         if (ErrorHelper.sensorAccessDenied429(err)) {
             if (err && err.data && err.data.body?.length === 0 && retries < 3) {
                 throw ('PROXY BLOCKED EMPTY!');
             }
-            // console.log('KASADA API FP BLOCKED! REGENNING!', Status.WARNING, true);
             if (err && err.data && err.data.body) {
-                task.apiFpBody = err.data.body;
+                task.accountsFpBody = err.data.body;
                 const extractedIPS = firstBetween(err.data.body, '<script src="', '"></script>');
                 if (extractedIPS && extractedIPS !== -1) {
-                    task.apiIpsJSUrl = ('https://api.nike.com' + extractedIPS.split('amp;').join(''));
+                    task.accountsIpsJSUrl = ('https://accounts.nike.com' + extractedIPS.split('amp;').join(''));
                 }
             }
             return Promise.resolve();
@@ -189,21 +185,18 @@ async function generateFPApi(task, retries = 0, isGS = false) {
 }
 
 
-async function getIpsJSApi(task, retries = 0) {
+async function getIpsJSAccounts(task, retries = 0) {
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'sec-ch-ua-mobile': '?0',
+        'accept': '*/*',
+        'sec-fetch-site': 'same-origin',
+        'cookie': '',
+        'sec-fetch-dest': 'script',
+        'accept-language': task.acceptLanguage,
+        'sec-fetch-mode': 'no-cors',
         'user-agent': task.user_agent,
-        'sec-ch-ua-platform': '"Windows"',
-        "accept": "*/*",
-        "sec-fetch-site": "same-origin",
-        "sec-fetch-mode": "no-cors",
-        "sec-fetch-dest": "script",
-        "referer": 'https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0',
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
-    };
-    return CustomElectronRequestC.get(task.apiIpsJSUrl, {
+        'referer': 'https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0'
+    }
+    return CustomElectronRequestC.get(task.accountsIpsJSUrl, {
         task: task,
         headers: task.headers,
         resolveOnlyBody: false,
@@ -220,7 +213,7 @@ async function getIpsJSApi(task, retries = 0) {
         return Promise.reject(new ErrorHelper('FAILED TO FETCH IPSJS!', r, ErrorCode.REQUIRES_LOGIN));
     }).catch(async (err) => {
         retries++;
-        console.log('here err broke right now let me knw ipsjsapi', err);
+        console.log('here err broke right now let me knw ipsjsaccounts', err);
         // task.setProxyWalk();
         if (retries > 2) {
             if (ErrorHelper.sensorAccessDenied403(err)) {
@@ -229,16 +222,14 @@ async function getIpsJSApi(task, retries = 0) {
             return Promise.resolve();
         }
         await CustomElectronRequestC.sleep(CustomElectronRequestC.random(1000, 2500));
-        return getIpsJSApi(task, retries);
+        return getIpsJSAccounts(task, retries);
     });
 }
 
-async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.com') {
+async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'accounts.nike.com') {
     if (!challenge || challenge.length < 250) {
         return Promise.resolve();
     }
-    let bmsc = task.kpsdkctAPI;
-
     let body = {
         "mode": 0,
         "kasadaRequest": {
@@ -246,7 +237,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
             "ips": challenge,
             "userAgent": task.user_agent,
             "language": 'en-US',
-            "bmsz": task.apiIpsJSUrl.split('?')[1].split('=')[1].split('&')[0]
+            "bmsz": task.accountsIpsJSUrl.split('?')[1].split('=')[1].split('&')[0]
         }
     }
     return CustomElectronRequestC.post('https://new.jevi.dev/Solver/solve', {
@@ -265,22 +256,23 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
         resolveOnlyBody: false,
         timeout: 35000,
     }).then(async (r) => {
+        console.log('got r', r);
         try {
             if (r && r.statusCode === 200) {
                 task.deviceid = r.body.deviceid;
                 if (r && r.body && r.body.dtHeader) {
-                    task.kpsdkdtApi = r.body.dtHeader;
+                    task.kpsdkdtAccounts = r.body.dtHeader;
                 }
                 if (r && r.body && r.body.imHeader) {
-                    task.kpsdkheadervalueApi = r.body.imHeader;
+                    task.kpsdkheadervalueAccounts = r.body.imHeader;
                 }
                 if (r && r.body && r.body.ctHeader) {
                     const kpsdkct = r.body.ctHeader;
-                    task.kpsdkctAPI = kpsdkct;
+                    task.kpsdkctAccounts = kpsdkct;
                 }
                 if (r && r.body && r.body.id) {
                     const id = r.body.id;
-                    task.lastSolveIdAPI = id;
+                    task.lastSolveIdAccounts = id;
                 }
                 if (r && r.body && r.body.payload) {
                     return Promise.resolve(r.body.payload);
@@ -289,7 +281,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
         } catch (e) {
             console.log('exception caught kasada post tl', e)
         }
-        return Promise.reject(new ErrorHelper('API CT GEN AnonDev FAILED!', r, ErrorCode.GENERAL));
+        return Promise.reject(new ErrorHelper('Accounts CT GEN AnonDev FAILED!', r, ErrorCode.GENERAL));
     }).catch(async (err) => {
         console.log('here got err broke', err)
         if (typeof err === 'string' && err?.includes('Request timed out')) {
@@ -328,28 +320,26 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
     });
 }
 
-async function postTlDataApi(task, ipsData = '') {
+async function postTlDataAccounts(task, ipsData = '') {
     task.headers = {
-        'sec-ch-ua': task.secchua,
-        'x-kpsdk-im': task.kpsdkheadervalueApi,
-        'x-kpsdk-ct': task.kpsdkctAPI,
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': task.user_agent,
         "content-type": "application/octet-stream",
-        "x-kpsdk-dt": task.kpsdkdtApi,
-        "x-kpsdk-v": 'j-0.0.0',
-        'sec-ch-ua-platform': '"Windows"',
+        ['x-kpsdk-ct']: task.kpsdkctAccounts,
+        'cookie': '',
         "accept": "*/*",
-        "origin": "https://api.nike.com",
-        // "sec-fetch-site": "same-origin",
         "sec-fetch-site": "same-origin",
+        "x-kpsdk-dt": task.kpsdkdtAccounts,
+        'accept-language': task.acceptLanguage,
+        "accept-encoding": "gzip, deflate, br",
         "sec-fetch-mode": "cors",
+        "x-kpsdk-v": 'j-0.0.0',
+        "origin": 'https://accounts.nike.com',
+        'user-agent': task.user_agent,
+        "referer": 'https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0',
+        'x-kpsdk-im': task.kpsdkheadervalueAccounts,
+        'content-length': '',
         "sec-fetch-dest": "empty",
-        "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0",
-        "accept-encoding": "gzip, deflate, br, zstd",
-        'accept-language': task.acceptLanguage
     };
-    return CustomElectronRequestC.post('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl', {
+    return CustomElectronRequestC.post('https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl', {
         task: task,
         headers: task.headers,
         resolveOnlyBody: false,
@@ -365,7 +355,7 @@ async function postTlDataApi(task, ipsData = '') {
             if (r.body.reload || r.body.includes('reload":true')) {
                 if (r.headers && r.headers['x-kpsdk-ct']) {
                     const kpsdkct = r.headers['x-kpsdk-ct'];
-                    task.kpsdkctAPI = kpsdkct;
+                    task.kpsdkctAccounts = kpsdkct;
                     if (r.headers && r.headers['x-kpsdk-cd']) {
                         task.kpsdkcd = r.headers['x-kpsdk-cd']
                     }
@@ -375,14 +365,14 @@ async function postTlDataApi(task, ipsData = '') {
                     if (r.headers && r.headers['x-kpsdk-cr']) {
                         task.kpsdkcr = r.headers['x-kpsdk-cr']
                     }
-                    task.apiIpsJSUrl = '';
+                    task.accountsIpsJSUrl = '';
                     return Promise.resolve();
                 }
             } else {
                 throw 'FAILED TO EGN CT TOKEN NO RELOAD TRUE';
             }
         }
-        return Promise.reject(new ErrorHelper('FAILED TO SOLVE CT API TL!', r, ErrorCode.REQUIRES_LOGIN));
+        return Promise.reject(new ErrorHelper('FAILED TO SOLVE CT ACCOUNTS TL!', r, ErrorCode.REQUIRES_LOGIN));
     }).catch(async (err) => {
         throw 'FAILED TO EGN CT TOKEN NO RELOAD TRUE EXCEPTION';
     });
@@ -417,128 +407,33 @@ async function runTests() {
 
         await launchBinary(goclient_args, goclientCallback);
         console.log('done launch binary');
-        await testJeviApi(task);
+        await testJeviAccounts(task);
         console.log('doing atc pre order');
-        await atcPreOrder(task);
-        await atcPreOrder(task);
-        await atcPreOrder(task);
-        await atcPreOrder(task);
-        await atcPreOrder(task);
-        await atcPreOrder(task);
+        await generateFPAccounts(task);
+        await CustomElectronRequestC.sleep(10000) // remove sleep and u will get 200 - with sleep 403
+        await generateFPAccounts(task);
+        await CustomElectronRequestC.sleep(10000) // remove sleep and u will get 200 - with sleep 403
+        await generateFPAccounts(task);
     } catch (e) {
         console.log('err here ', e);
     }
 }
 
-async function atcPreOrder(task, retries = 0) {
-    let url = 'https://api.nike.com/buy/partner_cart_preorder/v1/' + v4();
-    let bodyObj = {
-        "country": "MY",
-        "language": "en-GB",
-        "channel": "NIKECOM",
-        "cartId": v4(),
-        "currency": "MYR",
-        "paypalClicked": false,
-        "items": [{
-            "id": "83e48e6a-7c4e-537e-920a-bf9d8aec1457",
-            "skuId": "7501af6f-8675-5b2d-8313-ed3cd255cb5e",
-            "quantity": 1,
-            "valueAddedServices": []
-        }]
-    };
-    console.log('genning cd headers');
-    await task.generateCDHeaders(task);
-    console.log('genning cd headers done');
-    let headers = {
-        'sec-ch-ua': task.secchua,
-        'x-nike-visitid': 1,
-        'cloud_stack': 'buy_domain',
-        'x-kpsdk-cd': task.kpsdkcd,
-        'x-b3-traceid': v4(),
-        "x-kpsdk-v": "j-0.0.0",
-        'sec-ch-ua-platform': '"Windows"',
-        'x-b3-spanname': 'undefined',
-        'x-kpsdk-ct': task.kpsdkctAPI,
-        'x-nike-visitorid': v4(),
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': task.user_agent,
-        'content-type': 'application/json; charset=UTF-8',
-        'accept': 'application/json; charset=UTF-8, application/json',
-        'x-b3-spanid': v4(),
-        'x-b3-sampled': '1',
-        'appid': 'com.nike.commerce.checkout.web',
-        'origin': 'https://www.nike.com',
-        'sec-fetch-site': 'same-site',
-        'sec-fetch-mode': 'no-cors',
-        'sec-fetch-dest': 'empty',
-        'referer': 'https://www.nike.com/',
-        'accept-encoding': 'gzip, deflate, br, zstd',
-        'accept-language': task.acceptLanguage
-    };
-    const options = {
-        task: task,
-        retries: 0,
-        headers: headers,
-        json: true,
-        body: bodyObj,
-        followAllRedirects: false,
-        resolveOnlyBody: false,
-        skipRedirections: true
-    };
-    return CustomElectronRequestC.put(url, options).then(async (r) => {
-
-        if (r && r.statusCode === 200 && (!r.body || r.body.length === 0)) {
-            console.log('200 empty body')
-            return Promise.resolve();
-        }
-
-
-        if (r && r.body) {
-            if (r.body.status === 'PENDING') {
-                // this.commonService.setCookies(r);
-                return Promise.resolve();
-            } else if (r.body.status === 'COMPLETED' && r.body.error && r.body.error.errors) {
-                return Promise.reject(new ErrorHelper(JSON.stringify(r.body.error).toUpperCase(), r, ErrorCode.STOPPED));
-            }
-        } else if (r && r.statusCode === 200) {
-            console.log('200 but did not gen checkout link')
-            return Promise.resolve();
-        }
-        return Promise.reject(new ErrorHelper(JSON.stringify(r).toUpperCase()));
-    }).catch(async (err) => {
-        console.log('here got err exception', err);
-        retries++;
-        if (ErrorHelper.handleSensor(err)) {
-            if (ErrorHelper.sensorAccessDenied403(err)) {
-                console.log('true is 403')
-                return Promise.resolve();
-            }
-            if (ErrorHelper.sensorAccessDenied429(err)) {
-                console.log('true is 429')
-                return Promise.resolve();
-            }
-        }
-        await CustomElectronRequestC.sleep(2500);
-        return atcPreOrder(task, retries);
-    })
-}
-
-
 class Task {
     kpsdkcd = '';
     kpsdkst = '';
-    kpsdkctAPI = '';
+    kpsdkctAccounts = '';
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+    user_agent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1'
     secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
-    // secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
     interv = ''
     validfor = 0;
     lastExecutionTime = Date.now();
     visitId = 1;
     visitorId = '';
+    accountsIpsJSUrl = '';
 
     constructor() {
         console.log('here logging v4', v4);
@@ -589,8 +484,7 @@ const Status = {
     ENTERED: 6,
 }
 
-async function executeTests() {
-    await runTests();
-}
 
-executeTests();
+runTests();
+
+
