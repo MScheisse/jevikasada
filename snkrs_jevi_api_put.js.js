@@ -455,6 +455,7 @@ async function runTests() {
     try {
 
         await launchBinary(goclient_args, goclientCallback);
+        await CustomElectronRequestC.initPartition(task, 'snkrs_ios_app');
         console.log('done launch binary');
         await testJeviApi(task);
         console.log('doing atc pre order');
