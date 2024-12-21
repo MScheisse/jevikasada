@@ -374,6 +374,14 @@ class CustomElectronRequestC {
         return 'TSBSnkrs' + task.datasetPartitionForTask + CustomElectronRequestC.random(1, 200).toString();
     }
 
+    static async initPartition(task, profile = '') {
+        let proxy = '';
+        const part = CustomElectronRequestC.getPartitionPersist(task);
+        await CustomGrpcRequestC.init(part, proxy, task.user_agent, profile);
+        return Promise.resolve();
+    }
+
+
     static sleep(ms = 0) {
         return new Promise(r => setTimeout(r, ms));
     }

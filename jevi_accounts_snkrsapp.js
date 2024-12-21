@@ -1,4 +1,5 @@
 const CustomElectronRequestC = require('./CustomElectronRequestC');
+const CustomGrpcRequestC = require('./CustomGrpcRequestC');
 const ErrorHelper = require('./ErrorHelper');
 const v4 = require('uuid').v4;
 const fs = require('fs');
@@ -129,15 +130,16 @@ async function solveAccounts(task) {
 async function generateFPAccounts(task, retries = 0, isGS = false) {
 
     task.headers = {
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "sec-fetch-site": "same-origin",
-        "cookie": "",
         "sec-fetch-dest": "iframe",
-        'accept-language': task.acceptLanguage,
-        "sec-fetch-mode": "navigate",
         'user-agent': task.user_agent,
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         'referer': 'https://api.nike.com/idn/shim/oauth/2.0/token',
-        "accept-encoding": "gzip, deflate, br"
+        "sec-fetch-site": "same-origin",
+        "sec-fetch-mode": "navigate",
+        'accept-language': task.acceptLanguage,
+        'priority': 'u=0, i',
+        "accept-encoding": "gzip, deflate, br",
+        "cookie": ""
     };
 
     return CustomElectronRequestC.get('https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0', {
@@ -187,14 +189,16 @@ async function generateFPAccounts(task, retries = 0, isGS = false) {
 
 async function getIpsJSAccounts(task, retries = 0) {
     task.headers = {
-        'accept': '*/*',
-        'sec-fetch-site': 'same-origin',
-        'cookie': '',
         'sec-fetch-dest': 'script',
-        'accept-language': task.acceptLanguage,
-        'sec-fetch-mode': 'no-cors',
         'user-agent': task.user_agent,
-        'referer': 'https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0'
+        'accept': '*/*',
+        'referer': 'https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-mode': 'no-cors',
+        'accept-language': task.acceptLanguage,
+        'priority': 'u=0, i',
+        "accept-encoding": "gzip, deflate, br",
+        "cookie": ""
     }
     return CustomElectronRequestC.get(task.accountsIpsJSUrl, {
         task: task,
@@ -324,12 +328,9 @@ async function postTlDataAccounts(task, ipsData = '') {
     task.headers = {
         "content-type": "application/octet-stream",
         ['x-kpsdk-ct']: task.kpsdkctAccounts,
-        'cookie': '',
         "accept": "*/*",
         "sec-fetch-site": "same-origin",
         "x-kpsdk-dt": task.kpsdkdtAccounts,
-        'accept-language': task.acceptLanguage,
-        "accept-encoding": "gzip, deflate, br",
         "sec-fetch-mode": "cors",
         "x-kpsdk-v": 'j-0.0.0',
         "origin": 'https://accounts.nike.com',
@@ -338,6 +339,10 @@ async function postTlDataAccounts(task, ipsData = '') {
         'x-kpsdk-im': task.kpsdkheadervalueAccounts,
         'content-length': '',
         "sec-fetch-dest": "empty",
+        'accept-language': task.acceptLanguage,
+        'priority': 'u=0, i',
+        "accept-encoding": "gzip, deflate, br",
+        "cookie": ""
     };
     return CustomElectronRequestC.post('https://accounts.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl', {
         task: task,
@@ -406,6 +411,8 @@ async function runTests() {
     try {
 
         await launchBinary(goclient_args, goclientCallback);
+        await CustomElectronRequestC.initPartition(task, 'snkrs_ios_browser');
+
         console.log('done launch binary');
         await testJeviAccounts(task);
         console.log('doing atc pre order');

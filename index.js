@@ -2,6 +2,105 @@ const CustomElectronRequestC = require('./CustomElectronRequestC');
 const ErrorHelper = require('./ErrorHelper');
 const v4 = require('uuid').v4;
 const request = require('request');
+const fs = require('fs')
+const path = require('path');
+const spawn = require('child_process').spawn;
+
+let binaries = {
+    'goclient': (fs.existsSync(binary_path('goclient-debug.exe')) ? 'goclient-debug.exe' : 'goclient.exe')
+};
+
+if (process.platform === 'darwin') {
+    binaries = {
+        'goclient': 'goclient-mac'
+    };
+}
+
+let goclientProcess;
+
+let goclient_args = [binaries['goclient'], 'f872d2e1-11a4-4135-ae22-e78b30b323d3', getAppDataPath(), "7581,7582,7583,7584,7585,7586,7587,7588,7589,7590"];
+
+let goclientCallback = () => {
+    goclientProcess = launchBinary(goclient_args, goclientCallback);
+};
+
+function binary_path(binary) {
+    return path.join(binary);
+}
+
+function time() {
+    const now = new Date();
+    const day = String(now.getDate());
+    const month = String(now.getMonth() + 1);
+    const hour = String(now.getHours());
+    const minute = String(now.getMinutes());
+    const second = String(now.getSeconds());
+
+    const parsedDay = `${day.length <= 1 ? 0 : ''}${day}`;
+    const parsedMonth = `${month.length <= 1 ? 0 : ''}${month}`;
+    const parsedHour = `${hour.length <= 1 ? 0 : ''}${hour}`;
+    const parsedMinute = `${minute.length <= 1 ? 0 : ''}${minute}`;
+    const parsedSecond = `${second.length <= 1 ? 0 : ''}${second}`;
+
+    return `${parsedDay}/${parsedMonth}, ${parsedHour}:${parsedMinute}:${parsedSecond}`;
+}
+
+
+function launchBinary(args, errCallback) {
+    return new Promise((resolve, reject) => {
+        let binary = args[0];
+
+        let proc = execute([binary_path(binary), ...args.slice(1)], (stdout) => {
+            console.log(`[${time()}] [${binary}] stoud`, {stdout});
+            return resolve();
+        }, (stderr) => {
+            console.log(`[${time()}] [${binary}] stderr`, {stderr});
+        }, (exit_code) => {
+            console.log(`[${time()}] [${binary}] here did exit`, {exit_code});
+
+            setTimeout(() => {
+                errCallback();
+            }, 2500);
+        });
+    });
+}
+
+function execute(command, stdout_callback, stderr_callback, close_callback) {
+    const child = spawn(command[0], command.slice(1, command.length), {
+        env: {
+            // 'DATASET_ALSKDFJ_P': 'http://localhost:8888'
+        }
+    });
+    child.stdout.on('data', (chunk) => {
+        if (stdout_callback) {
+            stdout_callback(chunk.toString());
+        }
+    });
+
+    child.stderr.on('data', (chunk) => {
+        if (stderr_callback) {
+            stderr_callback(chunk.toString());
+        }
+    });
+
+    child.on('exit', (code) => {
+        if (close_callback) {
+            close_callback(code);
+        }
+    });
+
+    return child;
+}
+
+
+function getAppDataPath() {
+    const path = require('path');
+    const os = require('os');
+    const userDataPath = os.homedir();
+    const storagePath = path.join(userDataPath, process.platform === 'darwin' ? 'storage' : '\\storage');
+    console.log(storagePath);
+    return storagePath;
+}
 
 // Function to check if one hour has passed since the last execution
 function shouldExecute(task) {
@@ -14,7 +113,7 @@ function shouldExecute(task) {
 // const retryInterval = 0.1 * 60 * 1000 // 0.1 minute
 // const retryInterval = 2 * 60 * 1000 // 2 minutes
 // const retryInterval = 5 * 60 * 1000 // 5 minutes
-const retryInterval = 10 * 60 * 1000 // 10 minutes
+const retryInterval = 0.3 * 60 * 1000 // 10 minutes
 
 // every one hour report if still valid or not
 
@@ -160,7 +259,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
     if (!challenge || challenge.length < 250) {
         return Promise.resolve();
     }
-    let bmsc = task.kpsdkctAPI;
+    // let bmsc = task.kpsdkctAPI;
     let body = {
         "mode": 0,
         "kasadaRequest": {
@@ -168,7 +267,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
             "ips": challenge,
             "userAgent": task.user_agent,
             "language": 'en-US',
-            "bmsz": bmsc
+            "bmsz": task.apiIpsJSUrl.split('?')[1].split('=')[1].split('&')[0]
         }
     }
     return CustomElectronRequestC.post('https://new.jevi.dev/Solver/solve', {
@@ -326,7 +425,8 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function runTests() {
+async function runTests() {
+    await launchBinary(goclient_args, goclientCallback);
     let now = (new Date()).toLocaleString();
     console.log(`-> ${now} - running tests`);
     const task = new Task();
@@ -384,8 +484,8 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    secchua = '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"';
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+    secchua = '"Google Chrome";v="131", "Not=A?Brand";v="8", "Chromium";v="131"';
     interv = ''
     validfor = 0;
     lastExecutionTime = Date.now();

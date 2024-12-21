@@ -414,9 +414,13 @@ async function runTests() {
         await testJeviApi(task);
         console.log('doing atc pre order');
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
     } catch (e) {
         console.log('err here ', e);
@@ -555,7 +559,7 @@ class Task {
     visitorId = '';
     kpsdkv = 'a-1.16.5'
     kpsdkh = '01'
-    kpsdkdv = 'QkZRAEMCQFJfBH1cGhcWX2QLQlcDBgMBC0EUFQtDZ11BRVoMV0YDQwBQGQQDUxZF'
+    kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
     kpsdkfc = ''
 
 

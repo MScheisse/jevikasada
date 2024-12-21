@@ -459,9 +459,13 @@ async function runTests() {
         await testJeviApi(task);
         console.log('doing atc pre order');
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
     } catch (e) {
         console.log('err here ', e);
@@ -590,7 +594,8 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'SNKRS/6.7.0 (prod; 2408261936; iOS 16.7.2; iPhone10,3)'
+    user_agent = 'SNKRS/6.9.2 (prod; 2410241845; iOS 18.1.1; iPhone15,2)'
+    // user_agent = 'SNKRS/6.7.0 (prod; 2408261936; iOS 16.7.2; iPhone10,3)'
     // secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
     secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
     interv = ''
@@ -600,9 +605,11 @@ class Task {
     visitorId = '';
 
     kpsdkv = 'i-1.14.0'
-    kpsdkdv = 'QkZRAEMCQFJfBH1cGhcWX2QLQlcDBgMBC0EUFQtDZ11BRVoMV0YDQwBQGQQDUxZF'
+    kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
+    // kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
     kpsdkr = '1-B1ZUbmo'
-    kpsdkHHeader = '01peVZkJ18rjk1OLqVJeGa1IQThCA='
+    kpsdkHHeader = '01'
+    // kpsdkHHeader = '01peVZkJ18rjk1OLqVJeGa1IQThCA='
     kpsdkfc = ''
 
     constructor() {
