@@ -128,19 +128,18 @@ async function solveApi(task) {
 
 async function generateFPApi(task, retries = 0, isGS = false) {
     task.headers = {
-        "pragma": "no-cache",
-        "cache-control": "no-cache",
-        "user-agent": task.user_agent,
-        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3",
-        "accept-encoding": "gzip, deflate",
-        "accept-language": "en-US,en;q=0.9",
-        "upgrade-insecure-requests": "1",
-        "x-kpsdk-dv": task.kpsdkdv,
+        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        'sec-fetch-site': 'none',
         "x-kpsdk-h": task.kpsdkh,
+        "x-kpsdk-dv": task.kpsdkdv,
+        "accept-encoding": "gzip, deflate, br",
+        "accept-language": "en-US,en;q=0.9",
+        'sec-fetch-mode': 'navigate',
         "x-kpsdk-v": task.kpsdkv,
-        "x-requested-with": "com.nike.omega",
+        "user-agent": task.user_agent,
+        'sec-fetch-dest': 'document',
     };
-    return CustomElectronRequestC.get('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp?x-kpsdk-v=j-0.0.0', {
+    return CustomElectronRequestC.get('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp', {
         task: task,
         headers: task.headers,
         resolveOnlyBody: false,
@@ -148,6 +147,24 @@ async function generateFPApi(task, retries = 0, isGS = false) {
         timeout: 45000
     }).then(async (r) => {
         console.log('here r did resolve', r);
+        if (r?.headers) {
+            if (r.headers['x-kpsdk-h']) {
+                task.kpsdkHHeader = r.headers['x-kpsdk-h'];
+                await CustomElectronRequestC.setCookie(task, 'x-kpsdk-h', task.kpsdkHHeader, 'https://kasada.api.com');
+                console.log('here true  set x-kpsdk-h', task.kpsdkHHeader)
+            }
+            if (r.headers['x-kpsdk-fc']) {
+                task.kpsdkfc = r.headers['x-kpsdk-fc'];
+                await CustomElectronRequestC.setCookie(task, 'x-kpsdk-fc', task.kpsdkfc, 'https://kasada.api.com');
+                console.log('here true  set fc', task.kpsdkfc)
+            }
+            if (r.headers['x-kpsdk-r']) {
+                task.kpsdkr = r.headers['x-kpsdk-r'];
+                await CustomElectronRequestC.setCookie(task, 'x-kpsdk-r', task.kpsdkr, 'https://kasada.api.com');
+                console.log('here true  set fc', task.kpsdkr)
+            }
+        }
+
         if (r && r.statusCode === 200 && (!r.body || r.body.length === 0)) {
             throw ('KASADA API BLOCKED! PROCEED CAUTIOUSLY!', Status.DANGER);
         }
@@ -165,6 +182,19 @@ async function generateFPApi(task, retries = 0, isGS = false) {
         }
         return Promise.reject(new ErrorHelper('KASADA FAILURE!', r, ErrorCode.GENERAL));
     }).catch(async (err) => {
+
+        if (err?.data?.headers) {
+            if (err.data.headers['x-kpsdk-h']) {
+                task.kpsdkHHeader = err.data.headers['x-kpsdk-h'];
+                await CustomElectronRequestC.setCookie(task, 'x-kpsdk-h', task.kpsdkHHeader, 'https://kasada.api.com');
+                console.log('here true  set x-kpsdk-h', task.kpsdkHHeader)
+            }
+            if (err.data.headers['x-kpsdk-fc']) {
+                task.kpsdkfc = err.data.headers['x-kpsdk-fc'];
+                await CustomElectronRequestC.setCookie(task, 'x-kpsdk-fc', task.kpsdkfc, 'https://kasada.api.com');
+                console.log('here true  set fc', task.kpsdkfc)
+            }
+        }
         console.log('here err exception caught', err);
         retries++;
         // console.log('ERR GENERATING KASADA API!', Status.WARNING, true);
@@ -189,13 +219,15 @@ async function generateFPApi(task, retries = 0, isGS = false) {
 
 async function getIpsJSApi(task, retries = 0) {
     task.headers = {
-        "cache-control": "no-cache",
+        "accept": "*/*",
+        'sec-fetch-site': 'same-origin',
+        'cookie': '',
+        'sec-fetch-dest': 'script',
+        "accept-language": "en-US,en;q=0.9",
+        'sec-fetch-mode': 'no-cors',
         "user-agent": task.user_agent,
         "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
-        "accept-language": "en-US,en;q=0.9",
-        "pragma": "no-cache",
-        "accept": "*/*",
-        "x-requested-with": "com.nike.omega",
+        "accept-encoding": "gzip, deflate, br",
     };
     return CustomElectronRequestC.get(task.apiIpsJSUrl, {
         task: task,
@@ -324,24 +356,25 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
 
 async function postTlDataApi(task, ipsData = '') {
     task.headers = {
-        "x-kpsdk-v": "a-1.16.5",
-        "origin": "https://api.nike.com",
-        "accept": "*/*",
-        "accept-encoding": "gzip, deflate",
-        "cache-control": "no-cache",
         "referer": "https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/fp",
-        "x-requested-with": "com.nike.omega",
         "cookie": "",
-        'x-kpsdk-h': task.kpsdkh,
-        'x-kpsdk-dv': task.kpsdkdv,
-        "content-type": "application/octet-stream",
-        'x-kpsdk-fc': task.kpsdkfc,
-        'accept-language': task.acceptLanguage,
-        "pragma": "no-cache",
-        "x-kpsdk-im": task.kpsdkheadervalueApi,
-        "x-kpsdk-ct": task.kpsdkctAPI,
         "user-agent": task.user_agent,
-        "x-kpsdk-dt": task.kpsdkdtApi
+        "origin": "https://api.nike.com",
+        'sec-fetch-dest': 'empty',
+        'x-kpsdk-h': task.kpsdkh,
+        'sec-fetch-site': 'same-origin',
+        "content-length": "",
+        "x-kpsdk-ct": task.kpsdkctAPI,
+        'x-kpsdk-fc': task.kpsdkfc,
+        "x-kpsdk-dt": task.kpsdkdtApi,
+        'x-kpsdk-dv': task.kpsdkdv,
+        'accept-language': task.acceptLanguage,
+        "x-kpsdk-v": task.kpsdkv,
+        "x-kpsdk-im": task.kpsdkheadervalueApi,
+        "accept": "*/*",
+        "content-type": "application/octet-stream",
+        "accept-encoding": "gzip, deflate, br",
+        'sec-fetch-mode': 'cors',
     };
     return CustomElectronRequestC.post('https://api.nike.com/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/tl', {
         task: task,
@@ -364,7 +397,7 @@ async function postTlDataApi(task, ipsData = '') {
                         task.kpsdkcd = r.headers['x-kpsdk-cd']
                     }
                     if (r.headers && r.headers['x-kpsdk-st']) {
-                        // task.kpsdkst = r.headers['x-kpsdk-st']
+                        task.kpsdkst = r.headers['x-kpsdk-st']
                     }
                     if (r.headers && r.headers['x-kpsdk-cr']) {
                         task.kpsdkcr = r.headers['x-kpsdk-cr']
@@ -411,8 +444,8 @@ async function runTests() {
 
         await launchBinary(goclient_args, goclientCallback);
         console.log('done launch binary');
+        await CustomElectronRequestC.initPartition(task, 'snkrs_ios_app')
         await testJeviApi(task);
-        await generateFPApi(task);
         console.log('doing atc pre order');
         await atcPreOrder(task);
         await CustomElectronRequestC.sleep(5000);
@@ -438,8 +471,8 @@ async function atcPreOrder(task, retries = 0) {
         "currency": "MYR",
         "paypalClicked": false,
         "items": [{
-            "id": "83e48e6a-7c4e-537e-920a-bf9d8aec1457",
-            "skuId": "7501af6f-8675-5b2d-8313-ed3cd255cb5e",
+            "id": "a3e2f009-ddce-52a9-9747-7e102e403e37",
+            "skuId": "f32c19df-c156-5af6-a13d-c3fd3978b35b",
             "quantity": 1,
             "valueAddedServices": []
         }]
@@ -475,23 +508,25 @@ async function atcPreOrder(task, retries = 0) {
     };
 
     headers = {
-        'x-b3-traceid': v4(),
-        "accept-charset": "utf-8",
-        'x-kpsdk-ct': task.kpsdkctAPI,
-        "x-kpsdk-h": task.kpsdkh,
-        "traceparent": v4(),
-        "x-newrelic-id": "UAUDWF9TDBAHVVlRAAEEU1A=",
-        'x-nike-visitid': 1,
-        "accept": "application/json",
-        "x-kpsdk-cd": task.kpsdkcd,
-        'x-nike-visitorid': v4(),
-        "appid": "com.nike.commerce.omega.droid",
-        "nike-api-caller-id": "nike:com.nike.commerce.omega.droid:android:24.33.1",
-        "x-kpsdk-dv": task.kpsdkdv,
+        "cookie": "",
+        "nike-api-caller-id": "nike:com.nike.commerce.omega.ios:ios:25.9",
         "user-agent": task.user_agent,
-        "x-kpsdk-v": task.kpsdkv,
-        "tracestate": v4(),
+        'x-b3-sampled': "1",
         "newrelic": v4(),
+        "x-kpsdk-h": task.kpsdkh,
+        "content-length": "",
+        'x-kpsdk-ct': task.kpsdkctAPI,
+        "x-kpsdk-cd": task.kpsdkcd,
+        'x-b3-traceid': v4(),
+        "traceparent": v4(),
+        'x-nike-visitid': 1,
+        'x-nike-visitorid': v4(),
+        'appid': 'com.nike.commerce.omega.ios',
+        "x-kpsdk-dv": task.kpsdkdv,
+        "x-kpsdk-v": task.kpsdkv,
+        'accept-language': task.acceptLanguage,
+        "accept": "application/json",
+        "tracestate": v4(),
         "content-type": "application/json"
     };
     const options = {
@@ -550,7 +585,7 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'NikeApp/24.33.1 (prod; 2012212237; Android 10; samsung SM-A600FN)'
+    user_agent = 'NikeApp/25.9.1 (prod; 2501110045; iOS 18.1.1; iPhone15,2)'
     // secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
     secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
     interv = ''
@@ -558,9 +593,9 @@ class Task {
     lastExecutionTime = Date.now();
     visitId = 1;
     visitorId = '';
-    kpsdkv = 'a-1.16.5'
+    kpsdkv = 'i-1.16.0'
     kpsdkh = '01'
-    kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
+    kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpSAwhEGxFFWRFcQAVCVHFXFAlBUDRRDl8DBgYBUxZF'
     kpsdkfc = ''
 
 
@@ -576,9 +611,9 @@ class Task {
             console.log('here got cdgen', cdgen_generator);
             let body = await cdgen_generator.generateCd()
             if (body && body.workTime) {
-                // if (task.kpsdkst) {
-                //     body.st = task.kpsdkst;
-                // }
+                if (task.kpsdkst) {
+                    body.st = task.kpsdkst;
+                }
                 task.kpsdkcd = JSON.stringify(body);
                 return Promise.resolve()
             }

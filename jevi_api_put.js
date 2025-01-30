@@ -237,7 +237,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
     if (!challenge || challenge.length < 250) {
         return Promise.resolve();
     }
-    let bmsc = task.kpsdkctAPI;
+    // let bmsc = task.kpsdkctAPI;
 
     let body = {
         "mode": 0,
@@ -370,7 +370,7 @@ async function postTlDataApi(task, ipsData = '') {
                         task.kpsdkcd = r.headers['x-kpsdk-cd']
                     }
                     if (r.headers && r.headers['x-kpsdk-st']) {
-                        // task.kpsdkst = r.headers['x-kpsdk-st']
+                        task.kpsdkst = r.headers['x-kpsdk-st']
                     }
                     if (r.headers && r.headers['x-kpsdk-cr']) {
                         task.kpsdkcr = r.headers['x-kpsdk-cr']
@@ -419,11 +419,15 @@ async function runTests() {
         console.log('done launch binary');
         await testJeviApi(task);
         console.log('doing atc pre order');
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
-        await atcPreOrder(task);
+        await CustomElectronRequestC.sleep(5000);
         await atcPreOrder(task);
     } catch (e) {
         console.log('err here ', e);
@@ -531,8 +535,8 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-    secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+    secchua = '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"';
     // secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
     interv = ''
     validfor = 0;
