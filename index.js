@@ -484,8 +484,8 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
-    secchua = '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"';
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
+    secchua = '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"';
     interv = ''
     validfor = 0;
     lastExecutionTime = Date.now();
