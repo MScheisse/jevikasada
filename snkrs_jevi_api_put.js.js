@@ -4,7 +4,7 @@ const v4 = require('uuid').v4;
 const fs = require('fs');
 const path = require('path');
 const spawn = require('child_process').spawn;
-const retryInterval = 10 * 60 * 1000 // 10 minutes
+const retryInterval = 0.3 * 60 * 1000 // 10 minutes
 const cdgen_generator = require('./cdgen_generator')
 
 let binaries = {
@@ -98,10 +98,11 @@ function getAppDataPath() {
     const path = require('path');
     const os = require('os');
     const userDataPath = os.homedir();
-    const storagePath = path.join(userDataPath, process.platform === 'darwin' ? 'storage' : '\\storage');
+    const storagePath = path.join(userDataPath, 'AppData', 'Roaming', 'tsb', process.platform === 'darwin' ? 'storage' : '\\storage');
     console.log(storagePath);
     return storagePath;
 }
+
 
 
 async function testJeviApi(task) {
@@ -337,7 +338,10 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'api.nike.co
                 throw (JSON.stringify(err.data.body));
             }
         } else {
-            throw (JSON.stringify(err.data.statusCode));
+            if (err?.data?.statusCode) {
+                throw (JSON.stringify(err.data.statusCode));
+            }
+            return jeviGetPostTlDataBeta(task, challenge, domain)
         }
     });
 }
@@ -454,24 +458,32 @@ async function runTests() {
     const task = new Task();
     try {
 
-        await launchBinary(goclient_args, goclientCallback);
+        // await launchBinary(goclient_args, goclientCallback);
         await CustomElectronRequestC.initPartition(task, 'snkrs_ios_app');
         console.log('done launch binary');
         await testJeviApi(task);
         console.log('doing atc pre order');
         await atcPreOrder(task);
-        await CustomElectronRequestC.sleep(5000);
-        await atcPreOrder(task);
-        await CustomElectronRequestC.sleep(5000);
-        await atcPreOrder(task);
-        await CustomElectronRequestC.sleep(5000);
-        await atcPreOrder(task);
-        await CustomElectronRequestC.sleep(5000);
-        await atcPreOrder(task);
+
+        task.interv = setInterval(async () => { // check if still valid every 10 minutes
+            console.log('inside interval')
+            // await generateFPApi(task);
+            await atcPreOrder(task);
+        }, retryInterval)
     } catch (e) {
         console.log('err here ', e);
     }
 }
+
+async function runMultiple() {
+    await launchBinary(goclient_args, goclientCallback);
+    // for (let i = 0; i < 10; i++) {
+    await CustomElectronRequestC.sleep(5000);
+    for (let i = 0; i < 10; i++) {
+        runTests();
+    }
+}
+
 
 async function atcPreOrder(task, retries = 0) {
     let url = 'https://api.nike.com/buy/partner_cart_preorder/v1/' + v4();
@@ -530,8 +542,8 @@ async function atcPreOrder(task, retries = 0) {
         "accept": "application/json",
         "x-kpsdk-cd": task.kpsdkcd,
         'x-nike-visitorid': v4(),
-        "appid": "com.nike.commerce.omega.droid",
-        "nike-api-caller-id": "nike:com.nike.commerce.omega.droid:android:24.33.1",
+        "appid": "com.nike.commerce.snkrs.ios",
+        "nike-api-caller-id": "nike:snkrs:ios:7.0",
         "x-kpsdk-dv": task.kpsdkdv,
         "user-agent": task.user_agent,
         "x-kpsdk-v": task.kpsdkv,
@@ -595,7 +607,7 @@ class Task {
     uid = '';
     datasetPartitionForTask = 'datasetPartitioning';
     acceptLanguage = 'en-US,en;q=0.9'
-    user_agent = 'SNKRS/6.9.2 (prod; 2410241845; iOS 18.1.1; iPhone15,2)'
+    user_agent = 'SNKRS/7.0.2 (prod; 2502031326; iOS 18.1.1; iPhone15,2)'
     // user_agent = 'SNKRS/6.7.0 (prod; 2408261936; iOS 16.7.2; iPhone10,3)'
     // secchua = '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"';
     secchua = '"Chromium";v="124", "Google Chrome";v="124", ";Not A Brand";v="99"';
@@ -605,7 +617,7 @@ class Task {
     visitId = 1;
     visitorId = '';
 
-    kpsdkv = 'i-1.14.0'
+    kpsdkv = 'i-1.16.0'
     kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
     // kpsdkdv = 'QkZWEmcDRUBEDloaAg8FDhpRDxVEX1JfXBRZRQF5VRoJFFozUQtXBABQGwIPHA=='
     kpsdkr = '1-B1ZUbmo'
@@ -663,7 +675,7 @@ const Status = {
 }
 
 async function executeTests() {
-    await runTests();
+    await runMultiple();
 }
 
 executeTests();

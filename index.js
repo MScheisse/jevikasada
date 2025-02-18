@@ -97,10 +97,11 @@ function getAppDataPath() {
     const path = require('path');
     const os = require('os');
     const userDataPath = os.homedir();
-    const storagePath = path.join(userDataPath, process.platform === 'darwin' ? 'storage' : '\\storage');
+    const storagePath = path.join(userDataPath, 'AppData', 'Roaming', 'tsb', process.platform === 'darwin' ? 'storage' : '\\storage');
     console.log(storagePath);
     return storagePath;
 }
+
 
 // Function to check if one hour has passed since the last execution
 function shouldExecute(task) {
@@ -125,6 +126,7 @@ async function testJeviApi(task) {
         task.interv = setInterval(async () => { // check if still valid every 10 minutes
             await generateFPApi(task);
         }, retryInterval)
+        sendWebhook(task.lastSolveIdAPI, task.deviceid, task.uid, true, task.validfor)
         console.log('done generating jevi api fp');
     } catch (e) {
         console.log('exception caught here', e);
@@ -427,6 +429,7 @@ function random(min, max) {
 
 async function runTests() {
     await launchBinary(goclient_args, goclientCallback);
+    await CustomElectronRequestC.sleep(5000);
     let now = (new Date()).toLocaleString();
     console.log(`-> ${now} - running tests`);
     const task = new Task();
@@ -445,6 +448,7 @@ function sendWebhook(lastSolvedIdApi, deviceid, uid, isvalid, validfor, msg = ''
     let object = toSlackObject(lastSolvedIdApi, deviceid, uid, isvalid, validfor, msg);
     return new Promise((resolve, reject) => {
         request.post(link, object, (err, res, body) => {
+            console.log('here got error webhook', res)
             if (res && res.statusCode && ((res.statusCode.toString() === '204') || (res.statusCode.toString() === '200'))) {
                 return resolve('');
             } else {
@@ -456,7 +460,6 @@ function sendWebhook(lastSolvedIdApi, deviceid, uid, isvalid, validfor, msg = ''
             }
         });
     });
-
 }
 
 function toSlackObject(lastSolvedIdApi, deviceid, uid, isvalid, validfor, msg) {

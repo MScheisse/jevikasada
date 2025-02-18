@@ -99,7 +99,7 @@ function getAppDataPath() {
     const path = require('path');
     const os = require('os');
     const userDataPath = os.homedir();
-    const storagePath = path.join(userDataPath, process.platform === 'darwin' ? 'storage' : '\\storage');
+    const storagePath = path.join(userDataPath, 'AppData', 'Roaming', 'tsb', process.platform === 'darwin' ? 'storage' : '\\storage');
     console.log(storagePath);
     return storagePath;
 }
@@ -319,7 +319,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'accounts.ni
                 throw (JSON.stringify(err.data.body));
             }
         } else {
-            throw (JSON.stringify(err.data.statusCode));
+            return jeviGetPostTlDataBeta(task, challenge, domain);
         }
     });
 }
@@ -409,10 +409,7 @@ async function runTests() {
     console.log(`-> ${now} - running tests`);
     const task = new Task();
     try {
-
-        await launchBinary(goclient_args, goclientCallback);
         await CustomElectronRequestC.initPartition(task, 'snkrs_ios_browser');
-
         console.log('done launch binary');
         await testJeviAccounts(task);
         console.log('doing atc pre order');
@@ -423,6 +420,15 @@ async function runTests() {
         await generateFPAccounts(task);
     } catch (e) {
         console.log('err here ', e);
+    }
+}
+
+async function runMultiple() {
+    await launchBinary(goclient_args, goclientCallback);
+    // for (let i = 0; i < 10; i++) {
+    await CustomElectronRequestC.sleep(5000);
+    for (let i = 0; i < 10; i++) {
+        runTests();
     }
 }
 
@@ -492,6 +498,6 @@ const Status = {
 }
 
 
-runTests();
+runMultiple();
 
 

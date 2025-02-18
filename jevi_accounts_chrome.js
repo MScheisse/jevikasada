@@ -98,7 +98,7 @@ function getAppDataPath() {
     const path = require('path');
     const os = require('os');
     const userDataPath = os.homedir();
-    const storagePath = path.join(userDataPath, process.platform === 'darwin' ? 'storage' : '\\storage');
+    const storagePath = path.join(userDataPath, 'AppData', 'Roaming', 'tsb', process.platform === 'darwin' ? 'storage' : '\\storage');
     console.log(storagePath);
     return storagePath;
 }
@@ -123,11 +123,11 @@ async function testJeviApi(task) {
     try {
         await generateFPApi(task);
         await solveApi(task);
-        await generateFPApi(task);
-        // await credentialLookup(task);
+        // await generateFPApi(task);
+        await credentialLookup(task);
         task.interv = setInterval(async () => { // check if still valid every 10 minutes
-            await generateFPApi(task);
-            // await credentialLookup(task);
+            // await generateFPApi(task);
+            await credentialLookup(task);
         }, retryInterval)
         console.log('done generating jevi api fp');
     } catch (e) {
@@ -317,6 +317,7 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'accounts.ni
         }
     }
     return CustomElectronRequestC.post('https://new.jevi.dev/Solver/solve', {
+        // return CustomElectronRequestC.post('http://81.104.34.49:5215/Solver/solve', {
         task: task,
         headers: {
             "user-agent": task.user_agent,
@@ -385,7 +386,10 @@ async function jeviGetPostTlDataBeta(task, challenge = '', domain = 'accounts.ni
                 throw (JSON.stringify(err.data.body));
             }
         } else {
-            throw (JSON.stringify(err.data.statusCode));
+            if (err?.data?.statusCode) {
+                throw (JSON.stringify(err.data.statusCode));
+            }
+            return jeviGetPostTlDataBeta(task, challenge, domain);
         }
     });
 }
@@ -472,7 +476,7 @@ function random(min, max) {
 }
 
 async function runTests() {
-    await launchBinary(goclient_args, goclientCallback);
+    // await launchBinary(goclient_args, goclientCallback);
     let now = (new Date()).toLocaleString();
     console.log(`-> ${now} - running tests`);
     const task = new Task();
@@ -483,6 +487,15 @@ async function runTests() {
         clearInterval(task.interv)
         sendWebhook(task.lastSolveIdAPI, task.deviceid, task.uid, false, task.validfor, e)
         // handle all errors when invalid - send to slack
+    }
+}
+
+async function runMultiple() {
+    await launchBinary(goclient_args, goclientCallback);
+    // for (let i = 0; i < 10; i++) {
+    await CustomElectronRequestC.sleep(5000);
+    for (let i = 0; i < 10; i++) {
+        runTests();
     }
 }
 
@@ -532,6 +545,9 @@ class Task {
     acceptLanguage = 'en-US,en;q=0.9'
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
     secchua = '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"';
+    // user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36'
+    // secchua = '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"';
+
     interv = ''
     validfor = 0;
     lastExecutionTime = Date.now();
@@ -585,8 +601,7 @@ const Status = {
     ENTERED: 6,
 }
 
-
-runTests();
-
-setInterval(runTests, 4 * 60 * 60 * 1000); // rerun and retry tests every 4 hours
+runMultiple();
+// runTests()
+setInterval(runMultiple, 4 * 60 * 60 * 1000); // rerun and retry tests every 4 hours
 
